@@ -65,3 +65,12 @@ describe('semana de la rotación (misma fórmula que SQL)', async () => {
       .toEqual([2, 2, 3, 1, 5, 2, 1]);
   });
 });
+
+describe('calendario con rotación', async () => {
+  const { generarIcs } = await import('../supabase/functions/_shared/ics.ts');
+  it('el título de cada turno lleva la semana de la rotación', () => {
+    const dias = porFecha([{ fecha: '2026-10-26', empleado_id: 'x', inicio: '10:00:00', fin: '14:00:00', origen: '' }]);
+    const ics = generarIcs({ empresa: 'DeMÁT', empleadoId: 'e', empleado: 'VS', dias, rotacion: { semanas: 6, ancla_lunes: '2026-10-19', ancla_semana: 2 } });
+    expect(ics).toContain('SUMMARY:Trabajo · DeMÁT · Semana 3');
+  });
+});

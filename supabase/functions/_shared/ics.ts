@@ -93,7 +93,7 @@ export function generarIcs(d: DatosIcs): string {
         `DTSTAMP:${ahora}`,
         `DTSTART;TZID=${TZ}:${fechaHora(fecha, t.inicio)}`,
         `DTEND;TZID=${TZ}:${fechaHora(fecha, t.fin)}`,
-        `SUMMARY:${escapar(titulo + parte)}`,
+        `SUMMARY:${escapar(titulo + (d.rotacion ? ` · Semana ${semanaRotacion(d.rotacion, fecha)}` : '') + parte)}`,
         `DESCRIPTION:${escapar(`Turno de ${d.empleado}: ${t.inicio}–${t.fin}${d.rotacion ? ` · Semana ${semanaRotacion(d.rotacion, fecha)} de la rotación` : ''}`)}`,
         'TRANSP:OPAQUE',
         'STATUS:CONFIRMED',
