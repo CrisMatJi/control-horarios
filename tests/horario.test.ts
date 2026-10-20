@@ -32,3 +32,27 @@ describe('PDF', () => {
     expect(bytes.length).toBeGreaterThan(5000);
   });
 });
+
+describe('calendario .ics', async () => {
+  const { generarIcs } = await import('../supabase/functions/_shared/ics.ts');
+  const dias = porFecha([
+    { fecha: '2026-11-02', empleado_id: 'x', inicio: '10:00:00', fin: '14:00:00', origen: 'PLANTILLA' },
+    { fecha: '2026-11-02', empleado_id: 'x', inicio: '15:00:00', fin: '20:00:00', origen: 'PLANTILLA' },
+    { fecha: '2026-11-03', empleado_id: 'x', inicio: '08:00:00', fin: '15:00:00', origen: 'PLANTILLA' },
+  ]);
+  const ics = generarIcs({ empresa: 'DeMÁT', empleadoId: 'emp-1', empleado: 'Vanesa Sánchez', dias });
+
+  it('un evento por tramo, en hora de Madrid y con aviso', () => {
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(3);
+    expect(ics).toContain('DTSTART;TZID=Europe/Madrid:20261102T100000');
+    expect(ics).toContain('DTEND;TZID=Europe/Madrid:20261103T150000');
+    expect(ics).toContain('UID:emp-1-2026-11-02-1500@control-horarios');
+    expect(ics).toContain('SUMMARY:Trabajo · DeMÁT (tarde)');
+    expect(ics).toContain('TRIGGER:-PT60M');
+  });
+
+  it('cumple el formato: CRLF y líneas de 75 octetos como máximo', () => {
+    expect(ics.endsWith('END:VCALENDAR\r\n')).toBe(true);
+    for (const l of ics.split('\r\n')) expect(new TextEncoder().encode(l).length).toBeLessThanOrEqual(75);
+  });
+});

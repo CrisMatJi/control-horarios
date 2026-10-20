@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Avatar } from '../../components/Avatar';
 import { Icono } from '../../components/Icono';
 import { api } from '../../lib/api';
+import { descargarIcs } from '../../lib/descargarIcs';
 import { descargarPdf } from '../../lib/descargarPdf';
 import { useSesion } from '../../lib/sesion';
 import { nombreCompleto } from '../../lib/tipos';
@@ -84,6 +85,10 @@ export function MiHorario() {
           <button className="btn btn-primario btn-grande" disabled={!dias.size} onClick={() => descargarPdf(nombreCompleto(empleado), periodo, dias)}>
             <Icono n="descargar" t={20} />Descargar PDF de {nombreMes(periodo).split(' ')[0]}
           </button>
+          <button className="btn btn-grande" disabled={!dias.size} onClick={() => descargarIcs(empleado.id, nombreCompleto(empleado), periodo, dias)}>
+            <Icono n="calendario" t={20} />Añadir {nombreMes(periodo).split(' ')[0]} a mi calendario
+          </button>
+          <span className="muted" style={{ fontSize: 13, lineHeight: 1.5 }}>Cada turno se añade como un evento con aviso una hora antes. Si cambia el horario, vuelve a añadirlo.</span>
         </div>
 
         <section className="tarjeta" style={{ flex: '2 1 480px', minWidth: 0, overflow: 'hidden' }} aria-labelledby="mes">

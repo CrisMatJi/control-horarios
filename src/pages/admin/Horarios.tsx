@@ -5,6 +5,7 @@ import { CalendarioMes } from '../../components/CalendarioMes';
 import { Icono } from '../../components/Icono';
 import { useToast } from '../../components/Toast';
 import { api } from '../../lib/api';
+import { descargarIcs } from '../../lib/descargarIcs';
 import { descargarPdf } from '../../lib/descargarPdf';
 import { nombreCompleto, type Empleado, type Excepcion } from '../../lib/tipos';
 import {
@@ -112,6 +113,7 @@ export function Horarios() {
               </div>
               <div className="acciones">
                 <button className="btn" disabled={!stats.dias} onClick={() => descargarPdf(nombreCompleto(emp), periodo, dias)}><Icono n="descargar" />PDF</button>
+                <button className="btn" disabled={!stats.dias} onClick={() => descargarIcs(emp.id, nombreCompleto(emp), periodo, dias)}><Icono n="calendario" />.ics</button>
                 <button className="btn" disabled={!stats.dias || !emp.email || ocupado} onClick={reenviar}><Icono n="email" />{ocupado ? 'Enviando…' : 'Enviar por email'}</button>
               </div>
             </div>
