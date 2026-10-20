@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import { Avatar } from '../../components/Avatar';
 import { Icono } from '../../components/Icono';
 import { api } from '../../lib/api';
-import { nombreCompleto, type Empleado, type Envio } from '../../lib/tipos';
+import { nombreCompleto, type Empleado, type Envio, type Rotacion } from '../../lib/tipos';
 import {
   capital, diaSemana, DIAS_LARGOS, duracion, formatoHoras, hoyISO, minutos, moverPeriodo, nombreMes, partes,
-  periodoDe, rangoMes, tramoBonito, type FilaHorario, type Tramo,
+  periodoDe, rangoMes, semanaRotacion, tramoBonito, type FilaHorario, type Tramo,
 } from '../../../supabase/functions/_shared/horario.ts';
 
 const H_INI = 7;
@@ -17,6 +17,7 @@ export function Escritorio() {
   const [filas, setFilas] = useState<FilaHorario[]>([]);
   const [envios, setEnvios] = useState<Envio[]>([]);
   const [hayRotacion, setHayRotacion] = useState(true);
+  const [rotacion, setRotacion] = useState<Rotacion | null>(null);
   const [error, setError] = useState('');
   const hoy = hoyISO();
   const periodo = periodoDe(hoy);
@@ -25,7 +26,7 @@ export function Escritorio() {
   useEffect(() => {
     const { desde, hasta } = rangoMes(periodo);
     Promise.all([api.empleados(), api.horario(desde, hasta), api.envios(), api.rotacionActiva()])
-      .then(([e, h, en, r]) => { setEmpleados(e); setFilas(h); setEnvios(en); setHayRotacion(Boolean(r)); })
+      .then(([e, h, en, r]) => { setEmpleados(e); setFilas(h); setEnvios(en); setHayRotacion(Boolean(r)); setRotacion(r); })
       .catch((err) => setError(err.message));
   }, [periodo]);
 
@@ -63,6 +64,7 @@ export function Escritorio() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span className="etiqueta" style={{ color: 'var(--rojo)' }}>{capital(DIAS_LARGOS[diaSemana(hoy)])}, {d} de {nombreMes(periodo).split(' ')[0]}</span>
           <h1>Escritorio</h1>
+          {rotacion && <span className="chip chip-rojo" style={{ alignSelf: 'flex-start', fontSize: 13 }}>Semana {semanaRotacion(rotacion, hoy)} de {rotacion.semanas} de la rotación</span>}
         </div>
         <div className="acciones">
           <Link to="/admin/empleados" className="btn"><Icono n="mas" />Nuevo empleado</Link>

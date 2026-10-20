@@ -47,10 +47,13 @@ async function manejar(req: Request): Promise<Response> {
   if (!/^\d{4}-\d{2}$/.test(periodo)) return json({ error: 'periodo debe ser AAAA-MM' }, 400);
 
   // ── Datos ──
-  let q = admin.from('empleados').select('id, nombre, apellidos, email, token_calendario').eq('activo', true);
+  let q = admin.from('empleados').select('id, nombre, apellidos, email, token_calendario, departamento_id').eq('activo', true);
   if (body.empleado_id) q = q.eq('id', body.empleado_id);
   const { data: empleados, error: errEmp } = await q;
   if (errEmp) return json({ error: errEmp.message }, 500);
+
+  const { data: rots } = await admin.from('rotaciones').select('departamento_id, semanas, ancla_lunes, ancla_semana').eq('activa', true);
+  const rotacionDe = new Map((rots ?? []).map((r) => [r.departamento_id, r]));
 
   const { desde, hasta } = rangoMes(periodo);
   const { data: filas, error: errH } = await admin.rpc('horario', { p_desde: desde, p_hasta: hasta, p_empleado: body.empleado_id ?? null });
@@ -84,7 +87,7 @@ async function manejar(req: Request): Promise<Response> {
     try {
       const dias = porFecha(filasEmp);
       const totalMin = [...dias.values()].reduce((s, t) => s + duracion(t), 0);
-      const pdf = await generarPdfHorario({ empresa, empleado: nombre, periodo, dias, logoPng: logo });
+      const pdf = await generarPdfHorario({ empresa, empleado: nombre, periodo, dias, logoPng: logo, rotacion: rotacionDe.get(e.departamento_id) });
       const enlace = `${appUrl}/#/acceso?email=${encodeURIComponent(e.email)}`;
       const enlaceCal = `${appUrl}/#/calendario?t=${e.token_calendario}`;
       const mes = nombreMes(periodo);

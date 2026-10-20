@@ -2,7 +2,7 @@
 // Lo usan la web (botón "Añadir a mi calendario") y el email mensual (adjunto).
 // UID estable por empleado/fecha/hora: al importar de nuevo, los calendarios que lo
 // soportan (Google, Outlook) actualizan el evento en vez de duplicarlo.
-import { type Tramo } from './horario.ts';
+import { semanaRotacion, type RefRotacion, type Tramo } from './horario.ts';
 
 const TZ = 'Europe/Madrid';
 
@@ -63,6 +63,8 @@ export type DatosIcs = {
   avisoMin?: number;
   /** Para suscripciones: cada cuánto debe refrescar el calendario (p. ej. 'PT6H') */
   refresco?: string;
+  /** Si se pasa, la descripción indica la semana de la rotación */
+  rotacion?: RefRotacion | null;
 };
 
 export function generarIcs(d: DatosIcs): string {
@@ -92,7 +94,7 @@ export function generarIcs(d: DatosIcs): string {
         `DTSTART;TZID=${TZ}:${fechaHora(fecha, t.inicio)}`,
         `DTEND;TZID=${TZ}:${fechaHora(fecha, t.fin)}`,
         `SUMMARY:${escapar(titulo + parte)}`,
-        `DESCRIPTION:${escapar(`Turno de ${d.empleado}: ${t.inicio}–${t.fin}`)}`,
+        `DESCRIPTION:${escapar(`Turno de ${d.empleado}: ${t.inicio}–${t.fin}${d.rotacion ? ` · Semana ${semanaRotacion(d.rotacion, fecha)} de la rotación` : ''}`)}`,
         'TRANSP:OPAQUE',
         'STATUS:CONFIRMED',
       );

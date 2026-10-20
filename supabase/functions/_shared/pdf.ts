@@ -3,7 +3,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 import {
   capital, diaSemana, diasDelMes, DIAS_LARGOS, duracion, esPartido, formatoHoras,
-  isoDe, nombreMes, tramoBonito, type Tramo,
+  isoDe, nombreMes, semanaRotacion, tramoBonito, type RefRotacion, type Tramo,
 } from './horario.ts';
 
 const ROJO = rgb(0.741, 0.118, 0.063);
@@ -19,6 +19,8 @@ export type DatosPdf = {
   periodo: string; // 'YYYY-MM'
   dias: Map<string, Tramo[]>;
   logoPng?: Uint8Array;
+  /** Si se pasa, se indica la semana de la rotación de cada semana */
+  rotacion?: RefRotacion | null;
 };
 
 export async function generarPdfHorario(datos: DatosPdf): Promise<Uint8Array> {
@@ -65,9 +67,11 @@ export async function generarPdfHorario(datos: DatosPdf): Promise<Uint8Array> {
   page.drawText(resumen, { x: M, y, size: 10, font: regular, color: GRIS });
   y -= 18;
 
-  const cols = [M, M + 95, M + 330, width - M - 70];
+  const rot = datos.rotacion;
+  const off = rot ? 40 : 0; // columna extra "SEM."
+  const cols = [M + off, M + off + 95, M + off + 300, width - M - 70];
   const filaAlto = Math.min(20, (y - 60) / (n + 1));
-  cabecera(page, negrita, cols, y, width - 2 * M, filaAlto);
+  cabecera(page, negrita, cols, y, width - 2 * M, filaAlto, M, Boolean(rot));
   y -= filaAlto;
 
   for (let d = 1; d <= n; d++) {
@@ -77,6 +81,12 @@ export async function generarPdfHorario(datos: DatosPdf): Promise<Uint8Array> {
     const fondo = tramos.length && esPartido(tramos) ? FONDO_PARTIDO : ds >= 5 && !tramos.length ? FONDO_FINDE : undefined;
     if (fondo) page.drawRectangle({ x: M, y: y - filaAlto + 4, width: width - 2 * M, height: filaAlto, color: fondo });
     const base = y - filaAlto / 2 - 1;
+    if (rot && ds === 0 && d > 1) {
+      page.drawLine({ start: { x: M, y: y + 4 }, end: { x: width - M, y: y + 4 }, thickness: 1.2, color: GRIS });
+    }
+    if (rot && (ds === 0 || d === 1)) {
+      page.drawText(`S${semanaRotacion(rot, iso)}`, { x: M + 6, y: base, size: 10, font: negrita, color: ROJO });
+    }
     page.drawText(`${String(d).padStart(2, '0')} ${capital(DIAS_LARGOS[ds]).slice(0, 3)}`, { x: cols[0] + 6, y: base, size: 10, font: negrita, color: CARBON });
     page.drawText(tramos.length ? tramos.map(tramoBonito).join('   ·   ') : 'Libre', { x: cols[1], y: base, size: 10, font: regular, color: tramos.length ? CARBON : GRIS });
     if (tramos.length) {
@@ -91,10 +101,11 @@ export async function generarPdfHorario(datos: DatosPdf): Promise<Uint8Array> {
   return await pdf.save();
 }
 
-function cabecera(page: PDFPage, font: PDFFont, cols: number[], y: number, ancho: number, alto: number) {
-  page.drawRectangle({ x: cols[0], y: y - alto + 4, width: ancho, height: alto, color: CARBON });
+function cabecera(page: PDFPage, font: PDFFont, cols: number[], y: number, ancho: number, alto: number, x0: number, conSemana: boolean) {
+  page.drawRectangle({ x: x0, y: y - alto + 4, width: ancho, height: alto, color: CARBON });
   const base = y - alto / 2 - 1;
   const t = (s: string, x: number) => page.drawText(s, { x, y: base, size: 9, font, color: rgb(1, 1, 1) });
+  if (conSemana) t('SEM.', x0 + 6);
   t('DÍA', cols[0] + 6);
   t('HORARIO', cols[1]);
   t('TIPO', cols[2]);

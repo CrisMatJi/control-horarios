@@ -5,10 +5,10 @@ import { Calendario } from '../acceso/Calendario';
 import { api } from '../../lib/api';
 import { descargarPdf } from '../../lib/descargarPdf';
 import { useSesion } from '../../lib/sesion';
-import { nombreCompleto } from '../../lib/tipos';
+import { nombreCompleto, type Rotacion } from '../../lib/tipos';
 import {
   capital, diaSemana, DIAS_CORTOS, DIAS_LARGOS, diasDelMes, duracion, esPartido, formatoHoras, hoyISO, isoDe, moverPeriodo,
-  nombreMes, partes, periodoDe, porFecha, rangoMes, sumarDias, tramoBonito, type FilaHorario,
+  nombreMes, partes, periodoDe, porFecha, rangoMes, semanaRotacion, sumarDias, tramoBonito, type FilaHorario,
 } from '../../../supabase/functions/_shared/horario.ts';
 
 export function MiHorario() {
@@ -20,6 +20,9 @@ export function MiHorario() {
   const [vista, setVista] = useState<'lista' | 'mes'>('lista');
   const [elegido, setElegido] = useState(hoy);
   const [cargando, setCargando] = useState(true);
+  const [rotacion, setRotacion] = useState<Rotacion | null>(null);
+  useEffect(() => { api.rotacionActiva().then(setRotacion).catch(() => setRotacion(null)); }, []);
+  const sem = (iso: string) => (rotacion ? semanaRotacion(rotacion, iso) : null);
 
   useEffect(() => {
     if (!empleado) return;
@@ -62,6 +65,7 @@ export function MiHorario() {
           <div>
             <span className="etiqueta" style={{ color: 'var(--rojo)' }}>{capital(DIAS_LARGOS[diaSemana(hoy)])}, {dHoy} de {nombreMes(periodoDe(hoy)).split(' ')[0]}</span>
             <h1 style={{ fontSize: 28, fontWeight: 800 }}>Hola, {empleado.nombre}</h1>
+            {rotacion && <span className="chip chip-rojo" style={{ marginTop: 6, fontSize: 13 }}>Estás en la semana {sem(hoy)} de {rotacion.semanas}</span>}
           </div>
 
           <section className="hoy-card" aria-labelledby="hoy">
@@ -82,7 +86,7 @@ export function MiHorario() {
             <Mini label="Libres" valor={String(n - dias.size)} />
           </div>
 
-          <button className="btn btn-primario btn-grande" disabled={!dias.size} onClick={() => descargarPdf(nombreCompleto(empleado), periodo, dias)}>
+          <button className="btn btn-primario btn-grande" disabled={!dias.size} onClick={() => descargarPdf(nombreCompleto(empleado), periodo, dias, rotacion)}>
             <Icono n="descargar" t={20} />Descargar PDF de {nombreMes(periodo).split(' ')[0]}
           </button>
           {empleado.token_calendario && (
@@ -115,7 +119,12 @@ export function MiHorario() {
                 const ds = diaSemana(iso);
                 const t = dias.get(iso) ?? [];
                 const items = [];
-                if (ds === 0 || i === 0) items.push(<li key={`s${i}`} className="lista-semana">Semana del {i + 1 - ds > 0 ? i + 1 - ds : 1}</li>);
+                if (ds === 0 || i === 0) items.push(
+                  <li key={`s${i}`} className="lista-semana" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <span>{Math.max(1, i + 1 - ds)}–{Math.min(n, i + 7 - ds)} {nombreMes(periodo).slice(0, 3)}</span>
+                    {rotacion && <span style={{ color: hoy >= sumarDias(iso, -ds) && hoy <= sumarDias(iso, 6 - ds) ? 'var(--rojo)' : 'var(--carbon-2)' }}>Semana {sem(iso)}</span>}
+                  </li>,
+                );
                 items.push(
                   <li key={iso} className={`lista-dia ${iso < hoy ? 'pasado' : ''} ${iso === hoy ? 'hoy' : ''}`}>
                     <span style={{ width: 42, flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, color: iso === hoy ? 'var(--rojo-osc)' : undefined }}>
@@ -134,24 +143,28 @@ export function MiHorario() {
             </ul>
           ) : (
             <div className="mini-cal">
-              <div className="cal-dias">{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => <span key={d} style={{ textAlign: 'center' }}>{d}</span>)}</div>
-              <div className="cal-grid">
+              <div className={`cal-dias ${rotacion ? 'con-semana-mini' : ''}`}>{rotacion && <span style={{ textAlign: 'center' }}>Sem</span>}{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => <span key={d} style={{ textAlign: 'center' }}>{d}</span>)}</div>
+              <div className={`cal-grid ${rotacion ? 'con-semana-mini' : ''}`}>
                 {Array.from({ length: Math.ceil((offset + n) / 7) * 7 }, (_, i) => {
                   const d = i - offset + 1;
-                  if (d < 1 || d > n) return <span key={i} />;
+                  const lunes = sumarDias(isoDe(y, m, 1), d - 1);
+                  const marca = rotacion && i % 7 === 0
+                    ? <span key={`w${i}`} className={`cal-semana ${hoy >= lunes && hoy <= sumarDias(lunes, 6) ? 'actual' : ''}`} style={{ fontSize: 15 }}>{sem(lunes)}</span>
+                    : null;
+                  if (d < 1 || d > n) return [marca, <span key={i} />];
                   const iso = isoDe(y, m, d);
                   const t = dias.get(iso) ?? [];
-                  return (
+                  return [marca, (
                     <button key={i} className="mini-celda" aria-pressed={iso === elegido} aria-label={`${d}: ${t.length ? t.map(tramoBonito).join(' y ') : 'libre'}`} onClick={() => setElegido(iso)} style={iso === hoy && iso !== elegido ? { borderColor: 'var(--carbon)', borderWidth: 2 } : undefined}>
                       <span className="mono" style={{ fontSize: 13, fontWeight: 600 }}>{d}</span>
                       <span className="punto" style={t.length ? { background: esPartido(t) ? 'var(--rojo)' : 'var(--carbon-2)' } : { border: '1.5px solid #A8A99E' }} />
                       <small>{t.map((x) => tramoBonito(x).replace(/:00/g, '')).join('\n')}</small>
                     </button>
-                  );
+                  )];
                 })}
               </div>
               <div role="status" className="aviso aviso-gris" style={{ marginTop: 12, flexDirection: 'column', gap: 4 }}>
-                <strong>{capital(DIAS_LARGOS[diaSemana(elegido)])} {Number(elegido.slice(8))}</strong>
+                <strong>{capital(DIAS_LARGOS[diaSemana(elegido)])} {Number(elegido.slice(8))}{rotacion ? ` · semana ${sem(elegido)}` : ''}</strong>
                 <span className="mono tramos" style={{ fontSize: 16 }}>{elegidoT.length ? elegidoT.map((x, k) => <span key={k}>{tramoBonito(x)}</span>) : 'Libre'}</span>
                 {elegidoT.length > 0 && <span className="muted" style={{ fontSize: 13 }}>{esPartido(elegidoT) ? 'Turno partido' : 'Turno continuo'} · {formatoHoras(duracion(elegidoT))}</span>}
               </div>

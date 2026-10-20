@@ -56,3 +56,12 @@ describe('calendario .ics', async () => {
     for (const l of ics.split('\r\n')) expect(new TextEncoder().encode(l).length).toBeLessThanOrEqual(75);
   });
 });
+
+describe('semana de la rotación (misma fórmula que SQL)', async () => {
+  const { semanaRotacion } = await import('../supabase/functions/_shared/horario.ts');
+  const r = { semanas: 6, ancla_lunes: '2026-10-19', ancla_semana: 2 };
+  it('coincide con la función SQL semana_rotacion', () => {
+    expect(['2026-10-19', '2026-10-25', '2026-10-26', '2026-10-12', '2026-09-28', '2026-11-30', '2027-03-29'].map((d) => semanaRotacion(r, d)))
+      .toEqual([2, 2, 3, 1, 5, 2, 1]);
+  });
+});

@@ -121,6 +121,12 @@ textarea.input { height: auto; padding: 10px 12px; resize: vertical; }
 /* Calendario */
 .cal { padding: 16px; min-width: 700px; }
 .cal-dias, .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.cal-dias.con-semana, .cal-grid.con-semana { grid-template-columns: 52px repeat(7, minmax(0, 1fr)); }
+.cal-dias.con-semana-mini, .cal-grid.con-semana-mini { grid-template-columns: 34px repeat(7, minmax(0, 1fr)); }
+.cal-semana { border-radius: 8px; background: var(--fondo); color: var(--carbon-2); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--mono); font-size: 20px; font-weight: 600; gap: 2px; }
+.cal-semana small { font-family: var(--sans); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gris); }
+.cal-semana.actual { background: var(--rojo); color: var(--blanco); }
+.cal-semana.actual small { color: #fbd5d0; }
 .cal-dias span { font-size: 12px; font-weight: 700; color: var(--gris); text-transform: uppercase; letter-spacing: 0.08em; padding: 0 4px 6px; }
 .cal-celda { min-height: 112px; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; background: var(--blanco); border: 1px solid var(--linea); position: relative; }
 .cal-celda.fuera { background: transparent; border-style: dashed; }

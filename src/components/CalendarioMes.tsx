@@ -1,5 +1,6 @@
+import { Fragment } from 'react';
 import {
-  diaSemana, DIAS_CORTOS, diasDelMes, duracion, esPartido, formatoHoras, hoyISO, isoDe, tramoBonito, type Tramo,
+  diaSemana, DIAS_CORTOS, diasDelMes, duracion, esPartido, formatoHoras, hoyISO, isoDe, semanaRotacion, sumarDias, tramoBonito, type RefRotacion, type Tramo,
 } from '../../supabase/functions/_shared/horario.ts';
 import type { Excepcion } from '../lib/tipos';
 import { Icono } from './Icono';
@@ -10,11 +11,13 @@ type Props = {
   excepciones?: Map<string, Excepcion>;
   onEliminar?: (fecha: string) => void;
   onRestaurar?: (fecha: string) => void;
+  /** Si se pasa, cada fila muestra en qué semana de la rotación cae */
+  rotacion?: RefRotacion | null;
 };
 
 const ETIQUETA_EXC: Record<string, string> = { LIBRE: 'Eliminado', VACACIONES: 'Vacaciones', BAJA: 'Baja' };
 
-export function CalendarioMes({ periodo, dias, excepciones, onEliminar, onRestaurar }: Props) {
+export function CalendarioMes({ periodo, dias, excepciones, onEliminar, onRestaurar, rotacion }: Props) {
   const [y, m] = periodo.split('-').map(Number);
   const n = diasDelMes(periodo);
   const offset = diaSemana(isoDe(y, m, 1));
@@ -25,17 +28,25 @@ export function CalendarioMes({ periodo, dias, excepciones, onEliminar, onRestau
   return (
     <div className="scroll-x">
       <div className="cal">
-        <div className="cal-dias">{DIAS_CORTOS.map((d) => <span key={d}>{d}</span>)}</div>
-        <div className="cal-grid">
+        <div className={`cal-dias ${rotacion ? 'con-semana' : ''}`}>{rotacion && <span>Sem.</span>}{DIAS_CORTOS.map((d) => <span key={d}>{d}</span>)}</div>
+        <div className={`cal-grid ${rotacion ? 'con-semana' : ''}`}>
           {celdas.map((d, i) => {
-            if (d < 1 || d > n) return <div key={i} className="cal-celda fuera" aria-hidden="true" />;
+            const lunesFila = sumarDias(isoDe(y, m, 1), d - 1);
+            const esSemanaActual = hoy >= lunesFila && hoy <= sumarDias(lunesFila, 6);
+            const marca = rotacion && i % 7 === 0 ? (
+              <div className={`cal-semana ${esSemanaActual ? 'actual' : ''}`} title="Semana de la rotación">
+                <small>Sem.</small>{semanaRotacion(rotacion, lunesFila)}
+              </div>
+            ) : null;
+            if (d < 1 || d > n) return <Fragment key={i}>{marca}<div className="cal-celda fuera" aria-hidden="true" /></Fragment>;
             const iso = isoDe(y, m, d);
             const tramos = dias.get(iso) ?? [];
             const exc = excepciones?.get(iso);
             const anulado = exc && exc.tipo !== 'CAMBIO';
             const clase = ['cal-celda', tramos.length ? (esPartido(tramos) ? 'partido' : 'continuo') : '', anulado ? 'anulado' : '', iso === hoy ? 'hoy' : ''].join(' ');
             return (
-              <div key={i} className={clase}>
+              <Fragment key={i}>{marca}
+              <div className={clase}>
                 <div className="cal-num">
                   <span>{d}</span>
                   {tramos.length > 0 && onEliminar && (
@@ -61,6 +72,7 @@ export function CalendarioMes({ periodo, dias, excepciones, onEliminar, onRestau
                   <span className="cal-nota">Libre</span>
                 )}
               </div>
+              </Fragment>
             );
           })}
         </div>

@@ -95,3 +95,13 @@ export function porFecha(filas: FilaHorario[]): Map<string, Tramo[]> {
   for (const arr of m.values()) arr.sort((a, b) => minutos(a.inicio) - minutos(b.inicio));
   return m;
 }
+
+/** Datos mínimos de una rotación para saber qué semana toca en cada fecha */
+export type RefRotacion = { semanas: number; ancla_lunes: string; ancla_semana: number };
+
+/** Semana de la rotación (1..semanas) en la que cae una fecha. Misma fórmula que la función SQL semana_rotacion */
+export function semanaRotacion(r: RefRotacion, iso: string): number {
+  const dias = Math.round((Date.parse(`${iso}T00:00:00Z`) - Date.parse(`${r.ancla_lunes}T00:00:00Z`)) / 864e5);
+  const k = Math.floor(dias / 7);
+  return ((((k + r.ancla_semana - 1) % r.semanas) + r.semanas) % r.semanas) + 1;
+}

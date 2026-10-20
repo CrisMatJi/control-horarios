@@ -96,3 +96,13 @@ describe('seguridad (RLS)', () => {
     await expect(db.exec(`insert into public.excepciones (empleado_id, fecha, tipo) select privado.mi_empleado_id(), '2026-10-28', 'LIBRE'`)).rejects.toThrow();
   });
 });
+
+describe('la web y SQL calculan igual la semana', () => {
+  it('300 fechas alrededor del ancla dan la misma semana', async () => {
+    const { semanaRotacion, sumarDias } = await import('../supabase/functions/_shared/horario.ts');
+    await como(null, null);
+    const fechas = Array.from({ length: 300 }, (_, i) => sumarDias('2026-01-01', i * 3));
+    const r = await db.query<{ s: number }>(`select public.semana_rotacion(6, '2026-10-19', 2, d::date) s from unnest($1::text[]) d`, [fechas]);
+    expect(r.rows.map((x) => x.s)).toEqual(fechas.map((f) => semanaRotacion({ semanas: 6, ancla_lunes: '2026-10-19', ancla_semana: 2 }, f)));
+  });
+});

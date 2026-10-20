@@ -7,9 +7,9 @@ import { useToast } from '../../components/Toast';
 import { api } from '../../lib/api';
 import { descargarIcs } from '../../lib/descargarIcs';
 import { descargarPdf } from '../../lib/descargarPdf';
-import { nombreCompleto, type Empleado, type Excepcion } from '../../lib/tipos';
+import { nombreCompleto, type Empleado, type Excepcion, type Rotacion } from '../../lib/tipos';
 import {
-  capital, diasDelMes, duracion, esPartido, formatoHoras, hoyISO, isoDe, moverPeriodo, nombreMes, periodoDe, porFecha, rangoMes, type FilaHorario,
+  capital, diasDelMes, duracion, esPartido, formatoHoras, hoyISO, isoDe, moverPeriodo, nombreMes, periodoDe, porFecha, rangoMes, semanaRotacion, type FilaHorario,
 } from '../../../supabase/functions/_shared/horario.ts';
 
 export function Horarios() {
@@ -23,7 +23,8 @@ export function Horarios() {
   const [filtro, setFiltro] = useState('');
   const [ocupado, setOcupado] = useState(false);
 
-  useEffect(() => { api.empleados().then(setEmpleados); }, []);
+  const [rotacion, setRotacion] = useState<Rotacion | null>(null);
+  useEffect(() => { api.empleados().then(setEmpleados); api.rotacionActiva().then(setRotacion); }, []);
   useEffect(() => {
     if (!id && empleados.length) navigate(`/admin/horarios/${empleados.find((e) => e.activo)?.id ?? empleados[0].id}`, { replace: true });
   }, [id, empleados, navigate]);
@@ -109,11 +110,12 @@ export function Horarios() {
                 <div style={{ minWidth: 0 }}>
                   <h1 style={{ fontSize: 26 }}>{nombreCompleto(emp)}</h1>
                   <span className="muted" style={{ fontSize: 14 }}>{emp.email ?? 'Sin email'}{emp.movil ? ` · ${emp.movil}` : ''}</span>
+                  {rotacion && <span className="chip chip-rojo" style={{ marginLeft: 8 }}>Esta semana: semana {semanaRotacion(rotacion, hoyISO())} de {rotacion.semanas}</span>}
                 </div>
               </div>
               <div className="acciones">
-                <button className="btn" disabled={!stats.dias} onClick={() => descargarPdf(nombreCompleto(emp), periodo, dias)}><Icono n="descargar" />PDF</button>
-                <button className="btn" disabled={!stats.dias} onClick={() => descargarIcs(emp.id, nombreCompleto(emp), periodo, dias)}><Icono n="calendario" />.ics</button>
+                <button className="btn" disabled={!stats.dias} onClick={() => descargarPdf(nombreCompleto(emp), periodo, dias, rotacion)}><Icono n="descargar" />PDF</button>
+                <button className="btn" disabled={!stats.dias} onClick={() => descargarIcs(emp.id, nombreCompleto(emp), periodo, dias, rotacion)}><Icono n="calendario" />.ics</button>
                 <button className="btn" disabled={!stats.dias || !emp.email || ocupado} onClick={reenviar}><Icono n="email" />{ocupado ? 'Enviando…' : 'Enviar por email'}</button>
               </div>
             </div>
@@ -133,7 +135,7 @@ export function Horarios() {
                   <button className="btn btn-peligro" disabled={!stats.dias} onClick={vaciarMes}><Icono n="papelera" />Vaciar mes</button>
                 </div>
               </div>
-              <CalendarioMes periodo={periodo} dias={dias} excepciones={excMap} onEliminar={eliminarDia} onRestaurar={restaurarDia} />
+              <CalendarioMes periodo={periodo} dias={dias} excepciones={excMap} onEliminar={eliminarDia} onRestaurar={restaurarDia} rotacion={rotacion} />
             </section>
           </>
         )}
