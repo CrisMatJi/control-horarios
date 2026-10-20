@@ -3,7 +3,6 @@
 // Body: { "periodo": "2026-11", "empleado_id"?: uuid }
 import { createClient } from '@supabase/supabase-js';
 import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
-import { generarIcs } from '../_shared/ics.ts';
 import { generarPdfHorario } from '../_shared/pdf.ts';
 import { capital, duracion, formatoHoras, nombreMes, porFecha, rangoMes, type FilaHorario } from '../_shared/horario.ts';
 
@@ -48,7 +47,7 @@ async function manejar(req: Request): Promise<Response> {
   if (!/^\d{4}-\d{2}$/.test(periodo)) return json({ error: 'periodo debe ser AAAA-MM' }, 400);
 
   // ── Datos ──
-  let q = admin.from('empleados').select('id, nombre, apellidos, email').eq('activo', true);
+  let q = admin.from('empleados').select('id, nombre, apellidos, email, token_calendario').eq('activo', true);
   if (body.empleado_id) q = q.eq('id', body.empleado_id);
   const { data: empleados, error: errEmp } = await q;
   if (errEmp) return json({ error: errEmp.message }, 500);
@@ -86,23 +85,24 @@ async function manejar(req: Request): Promise<Response> {
       const dias = porFecha(filasEmp);
       const totalMin = [...dias.values()].reduce((s, t) => s + duracion(t), 0);
       const pdf = await generarPdfHorario({ empresa, empleado: nombre, periodo, dias, logoPng: logo });
-      const ics = new TextEncoder().encode(generarIcs({ empresa, empleadoId: e.id, empleado: nombre, dias }));
       const enlace = `${appUrl}/#/acceso?email=${encodeURIComponent(e.email)}`;
+      const enlaceCal = `${appUrl}/#/calendario?t=${e.token_calendario}`;
       const mes = nombreMes(periodo);
       await smtp.send({
         from: remitente,
         to: e.email,
         subject: `Tu horario de ${mes}`,
-        content: `Hola ${e.nombre}:\n\nTe adjuntamos tu horario de ${mes}: ${dias.size} días de trabajo y ${formatoHoras(totalMin)} en total.\n\nVa adjunto en PDF y como calendario (.ics): ábrelo en el móvil para añadir todos los turnos a tu calendario.\n\nTambién puedes verlo en el móvil cuando quieras: ${enlace}\n\n${empresa}`,
+        content: `Hola ${e.nombre}:\n\nTe adjuntamos tu horario de ${mes}: ${dias.size} días de trabajo y ${formatoHoras(totalMin)} en total.\n\nPara tener los turnos en el calendario del móvil (se actualizan solos): ${enlaceCal}\n\nTambién puedes verlo en el móvil cuando quieras: ${enlace}\n\n${empresa}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:560px;color:#23231F">
   <div style="height:4px;background:#BD1E10"></div>
   <div style="padding:24px">
     <p style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#BD1E10;font-weight:bold;margin:0 0 6px">Horario mensual</p>
     <h1 style="font-size:22px;margin:0 0 16px">${esc(capital(mes))}</h1>
     <p style="font-size:15px;line-height:1.55">Hola ${esc(e.nombre)}, ya tienes tu horario de <strong>${esc(mes)}</strong>: ${dias.size} días de trabajo y ${esc(formatoHoras(totalMin))} en total. Va adjunto en PDF.</p>
-    <div style="background:#F4F4F1;border-radius:8px;padding:14px 16px;font-size:14px;line-height:1.55;margin:16px 0">
-      <strong>Añádelo a tu calendario del móvil:</strong> abre el adjunto <em>Turnos ${esc(mes)}.ics</em> y acepta añadir los eventos. Cada turno lleva un aviso una hora antes.<br>
-      <span style="color:#5E5F57;font-size:13px">En Android, si tu calendario no lo abre al tocarlo, impórtalo desde calendar.google.com → Configuración → Importar.</span>
+    <div style="background:#F4F4F1;border-radius:8px;padding:16px;font-size:14px;line-height:1.55;margin:16px 0">
+      <strong>Tus turnos en el calendario del móvil</strong><br>
+      Suscríbete una vez y se actualizarán solos cada mes, con aviso una hora antes de cada turno.
+      <p style="margin:12px 0 4px"><a href="${enlaceCal}" style="background:#23231F;color:#fff;text-decoration:none;font-weight:bold;padding:10px 16px;border-radius:6px;display:inline-block">Añadir a mi calendario</a></p>
     </div>
     <p style="margin:24px 0"><a href="${enlace}" style="background:#BD1E10;color:#fff;text-decoration:none;font-weight:bold;padding:12px 18px;border-radius:6px;display:inline-block">Ver mi horario en el móvil</a></p>
     <p style="font-size:13px;color:#5E5F57;line-height:1.5">Entra siempre con este email: te mandaremos un enlace de acceso, sin contraseñas.</p>
@@ -111,7 +111,6 @@ async function manejar(req: Request): Promise<Response> {
 </div>`,
         attachments: [
           { filename: `Horario ${mes} - ${nombre}.pdf`, content: pdf, encoding: 'binary', contentType: 'application/pdf' },
-          { filename: `Turnos ${mes}.ics`, content: ics, encoding: 'binary', contentType: 'text/calendar; charset=utf-8; method=PUBLISH' },
         ],
       });
       res.enviados++;

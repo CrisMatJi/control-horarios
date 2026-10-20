@@ -13,3 +13,7 @@ export const EMPRESA = (import.meta.env.VITE_EMPRESA as string | undefined) ?? '
 
 /** URL pública de la app (respeta la base de GitHub Pages) */
 export const urlApp = (ruta = '') => `${window.location.origin}${import.meta.env.BASE_URL}${ruta}`;
+
+/** Enlace de suscripción al calendario de un empleado (https para Google, webcal para iPhone/Mac) */
+export const urlCalendario = (token: string) => `${url}/functions/v1/calendario?t=${token}`;
+export const webcalCalendario = (token: string) => urlCalendario(token).replace(/^https?:/, 'webcal:');

@@ -16,6 +16,7 @@ Coste: **0 €** (GitHub Pages + plan gratuito de Supabase + Gmail).
 | PDF | `pdf-lib`, el mismo código en el navegador y en el servidor |
 | Emails | Edge Function `enviar-horarios` + SMTP de Gmail |
 | Envío mensual | `pg_cron` el día 25 a las 07:00 UTC con el mes siguiente |
+| Calendario del móvil | Edge Function `calendario`: suscripción webcal privada por empleado (`empleados.token_calendario`), se refresca sola |
 | Mantener activo | GitHub Action cada 3 días (el plan gratuito pausa tras 7 días sin uso) |
 
 ## Cómo funciona el horario

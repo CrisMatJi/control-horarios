@@ -7,6 +7,7 @@ export type Empleado = {
   email: string | null;
   movil: string | null;
   activo: boolean;
+  token_calendario?: string;
 };
 
 export type Excepcion = {

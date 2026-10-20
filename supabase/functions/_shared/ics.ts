@@ -61,6 +61,8 @@ export type DatosIcs = {
   titulo?: string;
   /** Aviso antes de cada turno, en minutos (0 = sin aviso) */
   avisoMin?: number;
+  /** Para suscripciones: cada cuánto debe refrescar el calendario (p. ej. 'PT6H') */
+  refresco?: string;
 };
 
 export function generarIcs(d: DatosIcs): string {
@@ -75,6 +77,7 @@ export function generarIcs(d: DatosIcs): string {
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapar(`Horario ${d.empresa}`)}`,
     `X-WR-TIMEZONE:${TZ}`,
+    ...(d.refresco ? [`REFRESH-INTERVAL;VALUE=DURATION:${d.refresco}`, `X-PUBLISHED-TTL:${d.refresco}`] : []),
     ...VTIMEZONE,
   ];
   const fechas = [...d.dias.keys()].sort();

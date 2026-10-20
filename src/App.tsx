@@ -5,6 +5,7 @@ import { ToastProvider } from './components/Toast';
 import { SesionProvider, useSesion, type Rol } from './lib/sesion';
 import { configurado } from './lib/supabase';
 import { AccesoEmpleado } from './pages/acceso/AccesoEmpleado';
+import { Calendario } from './pages/acceso/Calendario';
 import { LoginAdmin } from './pages/acceso/LoginAdmin';
 import { SinAcceso } from './pages/acceso/SinAcceso';
 import { Empleados } from './pages/admin/Empleados';
@@ -54,6 +55,7 @@ export function App() {
         <HashRouter>
           <Routes>
             <Route path="/" element={<Inicio />} />
+            <Route path="/calendario" element={<Calendario />} />
             <Route path="/acceso" element={<Publica><AccesoEmpleado /></Publica>} />
             <Route path="/admin/login" element={<Publica><LoginAdmin /></Publica>} />
             <Route path="/sin-acceso" element={<Solo rol="sin-ficha" login="/acceso"><SinAcceso /></Solo>} />
