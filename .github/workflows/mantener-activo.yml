@@ -1,0 +1,23 @@
+name: Mantener Supabase activo
+
+# El plan gratuito pausa el proyecto tras 7 días sin actividad.
+# Esta consulta ligera cada 3 días lo evita.
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Consulta a la API de Supabase
+        run: |
+          set -a; . ./.env.production; set +a
+          # Consulta real a la base de datos (con la clave pública devuelve [] por RLS, pero toca Postgres)
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            "$VITE_SUPABASE_URL/rest/v1/empresas?select=id&limit=1" \
+            -H "apikey: $VITE_SUPABASE_ANON_KEY")
+          echo "Respuesta: $code"
+          test "$code" = "200"
